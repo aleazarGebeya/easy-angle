@@ -3,13 +3,17 @@ import React, { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+// Changes:
+// - The 'errors' state now allows string | undefined, which resolves type error for handleChange.
+// - Logic updated so that errors are deleted when cleared for cleanliness.
+
 export function ContactForm() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
-  const [errors, setErrors] = useState<{[key:string]:string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string | undefined }>({});
   const [sent, setSent] = useState(false);
 
   function validate(values: typeof form) {
-    const errs: {[key:string]:string} = {};
+    const errs: { [key: string]: string } = {};
     if (!values.name.trim()) errs.name = "Name is required.";
     if (!values.email.trim()) errs.email = "Email is required.";
     else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email)) errs.email = "Invalid email address.";
@@ -17,9 +21,14 @@ export function ContactForm() {
     return errs;
   }
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement|HTMLTextAreaElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
-    setErrors((prev) => ({ ...prev, [e.target.name]: undefined }));
+    setErrors(prev => {
+      // Remove error key if set to undefined (clean up object)
+      const newErrors = { ...prev };
+      delete newErrors[e.target.name];
+      return newErrors;
+    });
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -31,10 +40,11 @@ export function ContactForm() {
     }
     // Store in localStorage
     const msgs = JSON.parse(localStorage.getItem('SAASIFY_CONTACT_MSGS') || "[]");
-    msgs.push({...form, timestamp: Date.now()});
+    msgs.push({ ...form, timestamp: Date.now() });
     localStorage.setItem('SAASIFY_CONTACT_MSGS', JSON.stringify(msgs));
     setSent(true);
     setForm({ name: "", email: "", message: "" });
+    setErrors({});
     setTimeout(() => setSent(false), 4000);
   }
 
@@ -84,5 +94,5 @@ export function ContactForm() {
         {sent ? 'Sent!' : 'Send Message'}
       </Button>
     </form>
-  )
+  );
 }
